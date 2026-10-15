@@ -20,6 +20,15 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Pickup")
 	TObjectPtr<UStaticMeshComponent> Mesh;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Pickup")
+	TObjectPtr<class USphereComponent> Sphere;
+
+	UFUNCTION()
+	void HandleOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Pickup")
+	void OnPickedUp(AActor* Collector);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pickup", meta = (ClampMin = "0"))
 	float HealAmount = 25.f;
 

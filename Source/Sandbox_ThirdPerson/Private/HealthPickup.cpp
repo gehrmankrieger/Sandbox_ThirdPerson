@@ -1,14 +1,24 @@
 
 
 #include "HealthPickup.h"
+#include "Components/SphereComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "HealthComponent.h"
 
 AHealthPickup::AHealthPickup()
 {
 
-	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
-	SetRootComponent(Mesh);
-
 	PrimaryActorTick.bCanEverTick = false;
+
+	Sphere = CreateDefaultSubobject<USphereComponent>(TEXT("SPHERE"));
+	Sphere->SetSphereRadius(60.f);
+	Sphere->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
+	Sphere->SetGenerateOverlapEvents(true);
+	SetRootComponent(Sphere);
+
+	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
+	Mesh->SetupAttachment(Sphere);
+	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 }
 
@@ -19,6 +29,7 @@ void AHealthPickup::BeginPlay()
 
 	UsesLeft = MaxUses;  
 	OnPickupReady();
+	Sphere->OnComponentBeginOverlap.AddDynamic(this, &AHealthPickup::HandleOverlap);
 	
 }
 
@@ -43,3 +54,33 @@ void AHealthPickup::Tick(float DeltaTime)
 
 }
 
+void AHealthPickup::HandleOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (!IsValid(OtherActor) || OtherComp != OtherActor->GetRootComponent())
+	{
+		return;
+	}
+
+	if (!CanBePickedUp())
+	{
+		return;
+	}
+
+	UHealthComponent* HealthComp = OtherActor->FindComponentByClass<UHealthComponent>();
+	if (!HealthComp || HealthComp->IsFull())
+	{
+		return;
+	}
+
+	HealthComp->Heal(HealAmount);
+	--UsesLeft;
+	OnPickedUp(OtherActor);
+	UE_LOG(LogTemp, Warning, TEXT("Health: %.1f, Heal Amount: %.1f"), HealthComp->GetHealth(), HealAmount);
+
+	if (UsesLeft <= 0)
+	{
+		Destroy();
+		UE_LOG(LogTemp, Warning, TEXT("Health pick destroyed."));
+
+	}
+}
